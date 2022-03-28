@@ -12,7 +12,7 @@ struct Snake
 	SDL_Rect* body = NULL;
 	Uint8 direction = 0, dir_new = 0;
 	int tile_size = 0;
-	bool alive = false;
+	bool live = false;
 };
 
 bool colliderect(SDL_Rect self, SDL_Rect rect)
@@ -30,7 +30,7 @@ int collidelist(SDL_Rect self, SDL_Rect* list, int start, int end)
 
 void snake_init(Snake& self, int* pg_size, int tile_size = 40, int length = 2)
 {
-	self.alive = true;
+	self.live = true;
 	self.length = length;
 	self.tile_size = tile_size;
 	if (self.body == NULL)
@@ -141,7 +141,8 @@ int main(int argc, char** args)
 						apple = apple_spawn(pg_size, tile_size, snake);
 						break;
 					case SDL_SCANCODE_ESCAPE:
-						quit();
+						snake.live = !snake.live;
+						break;
 					}
 				break;
 			}
@@ -153,7 +154,7 @@ int main(int argc, char** args)
 		SDL_RenderPresent(ren);
 		
 
-		if (snake.alive) 
+		if (snake.live) 
 		{
 			if (colliderect(apple, snake.body[0]))
 			{
@@ -165,7 +166,7 @@ int main(int argc, char** args)
 
 			if (snake.body[0].x < 0 or snake.body[0].x >= win_w or snake.body[0].y < 0 or snake.body[0].y >= win_h or
 				snake.length == pg_size[0] * pg_size[1])
-				snake.alive = false;
+				snake.live = false;
 
 			int collides = collidelist(snake.body[0], snake.body, 3, snake.length);
 			if (collides != -1)
