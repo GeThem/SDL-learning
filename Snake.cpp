@@ -1,9 +1,8 @@
 #include <SDL.h>
-#include <SDL_image.h>
+#include "SDL_default.h"
 #include <time.h>
 #include <random>
 #include <malloc.h>
-#include "SDL_default.h"
 
 int win_w = 800, win_h = 600;
 
@@ -11,7 +10,7 @@ struct Snake
 {
 	int length = 0;
 	SDL_Rect* body = NULL;
-	Uint8 direction = 0, moves = 0;
+	Uint8 direction = 0, dir_new = 0;
 	int tile_size = 0;
 	bool alive = false;
 };
@@ -34,8 +33,9 @@ void snake_init(Snake& self, int* pg_size, int tile_size = 40, int length = 2)
 	self.alive = true;
 	self.length = length;
 	self.tile_size = tile_size;
-	self.body = (SDL_Rect*)realloc(self.body, sizeof(SDL_Rect) * pg_size[0] * pg_size[1]);
-	self.direction = self.moves =  0;
+	if (self.body == NULL)
+		self.body = (SDL_Rect*)malloc(sizeof(SDL_Rect) * pg_size[0] * pg_size[1]);
+	self.direction = self.dir_new =  0;
 	if (self.body == NULL)
 		quit();
 	self.body[0] = { (pg_size[0] / 2) * self.tile_size,  pg_size[1] / 2 * self.tile_size, self.tile_size, self.tile_size };
@@ -45,23 +45,23 @@ void snake_init(Snake& self, int* pg_size, int tile_size = 40, int length = 2)
 void snake_move(Snake& self)
 {
 	if (!self.direction)
-		if (self.moves == SDL_SCANCODE_RIGHT or self.moves == SDL_SCANCODE_UP or self.moves == SDL_SCANCODE_DOWN)
-			self.direction = self.moves;
-		else if (self.moves == SDL_SCANCODE_LEFT)
+		if (self.dir_new == SDL_SCANCODE_RIGHT or self.dir_new == SDL_SCANCODE_UP or self.dir_new == SDL_SCANCODE_DOWN)
+			self.direction = self.dir_new;
+		else if (self.dir_new == SDL_SCANCODE_LEFT)
 			self.direction = SDL_SCANCODE_RIGHT;
 	if (self.direction)
 	{
 		for (int i = self.length - 1; i > 0; i--)
 			self.body[i] = self.body[i - 1];
 
-		if (self.moves != self.direction)
-			if (self.moves == SDL_SCANCODE_UP and self.direction == SDL_SCANCODE_DOWN or
-				self.moves == SDL_SCANCODE_DOWN and self.direction == SDL_SCANCODE_UP or 
-				self.moves == SDL_SCANCODE_RIGHT and self.direction == SDL_SCANCODE_LEFT or 
-				self.moves == SDL_SCANCODE_LEFT and self.direction == SDL_SCANCODE_RIGHT)
-				self.moves = self.direction;
+		if (self.dir_new != self.direction)
+			if (self.dir_new == SDL_SCANCODE_UP and self.direction == SDL_SCANCODE_DOWN or
+				self.dir_new == SDL_SCANCODE_DOWN and self.direction == SDL_SCANCODE_UP or 
+				self.dir_new == SDL_SCANCODE_RIGHT and self.direction == SDL_SCANCODE_LEFT or 
+				self.dir_new == SDL_SCANCODE_LEFT and self.direction == SDL_SCANCODE_RIGHT)
+				self.dir_new = self.direction;
 
-		switch (self.moves)
+		switch (self.dir_new)
 		{
 		case SDL_SCANCODE_UP:
 			self.body[0].y -= self.tile_size;
@@ -77,7 +77,7 @@ void snake_move(Snake& self)
 			break;
 		}
 
-		self.direction = self.moves;
+		self.direction = self.dir_new;
 	}
 }
 
@@ -100,7 +100,7 @@ void apple_draw(SDL_Rect self)
 SDL_Rect apple_spawn(int* pg_size, int tile_size, Snake snake)
 {
 	SDL_Rect apple = { rand() % pg_size[0] * tile_size, rand() % pg_size[1] * tile_size, tile_size, tile_size };
-	if (collidelist(apple, snake.body, 0, snake.length) != -1)
+	if (collidelist(apple, snake.body, 0, snake.length - 1) != -1)
 		apple = { snake.body[snake.length - 1].x, snake.body[snake.length - 1].y, tile_size, tile_size };
 	return apple;
 }
@@ -132,7 +132,7 @@ int main(int argc, char** args)
 				quit();
 			case SDL_KEYDOWN:
 				if (ev.key.keysym.scancode >= SDL_SCANCODE_RIGHT and ev.key.keysym.scancode <= SDL_SCANCODE_UP)
-					snake.moves = ev.key.keysym.scancode;
+					snake.dir_new = ev.key.keysym.scancode;
 				else
 					switch (ev.key.keysym.scancode)
 					{
