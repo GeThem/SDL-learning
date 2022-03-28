@@ -1,1 +1,2 @@
-![Snake](https://user-images.githubusercontent.com/99418179/160305275-1c132808-f1ba-4c0f-9b7c-649ae03cca71.gif)
+## R to restart, Esc to exit.
+![Snake 2](https://user-images.githubusercontent.com/99418179/160381698-689518e6-dcfd-4c2e-b440-0ce851f53f57.gif)
