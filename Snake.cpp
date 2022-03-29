@@ -12,7 +12,7 @@ struct Snake
 	SDL_Rect* body = NULL;
 	Uint8 direction = 0, dir_new = 0;
 	int tile_size = 0;
-	bool live = false;
+	bool alive = false;
 };
 
 bool colliderect(SDL_Rect self, SDL_Rect rect)
@@ -30,7 +30,7 @@ int collidelist(SDL_Rect self, SDL_Rect* list, int start, int end)
 
 void snake_init(Snake& self, int* pg_size, int tile_size = 40, int length = 2)
 {
-	self.live = true;
+	self.alive = true;
 	self.length = length;
 	self.tile_size = tile_size;
 	if (self.body == NULL)
@@ -38,8 +38,8 @@ void snake_init(Snake& self, int* pg_size, int tile_size = 40, int length = 2)
 	self.direction = self.dir_new =  0;
 	if (self.body == NULL)
 		quit();
-	self.body[0] = { (pg_size[0] / 2) * self.tile_size,  pg_size[1] / 2 * self.tile_size, self.tile_size, self.tile_size };
-	self.body[1] = { (pg_size[0] / 2 - 1) * self.tile_size, pg_size[1] / 2 * self.tile_size, self.tile_size, self.tile_size };
+	self.body[0] = { (pg_size[0] / 2) * tile_size,  pg_size[1] / 2 * tile_size, tile_size, tile_size };
+	self.body[1] = { (pg_size[0] / 2 - 1) * tile_size, pg_size[1] / 2 * tile_size, tile_size, tile_size };
 }
 
 void snake_move(Snake& self)
@@ -49,6 +49,7 @@ void snake_move(Snake& self)
 			self.direction = self.dir_new;
 		else if (self.dir_new == SDL_SCANCODE_LEFT)
 			self.direction = SDL_SCANCODE_RIGHT;
+	
 	if (self.direction)
 	{
 		for (int i = self.length - 1; i > 0; i--)
@@ -56,10 +57,12 @@ void snake_move(Snake& self)
 
 		if (self.dir_new != self.direction)
 			if (self.dir_new == SDL_SCANCODE_UP and self.direction == SDL_SCANCODE_DOWN or
-				self.dir_new == SDL_SCANCODE_DOWN and self.direction == SDL_SCANCODE_UP or 
-				self.dir_new == SDL_SCANCODE_RIGHT and self.direction == SDL_SCANCODE_LEFT or 
+				self.dir_new == SDL_SCANCODE_DOWN and self.direction == SDL_SCANCODE_UP or
+				self.dir_new == SDL_SCANCODE_RIGHT and self.direction == SDL_SCANCODE_LEFT or
 				self.dir_new == SDL_SCANCODE_LEFT and self.direction == SDL_SCANCODE_RIGHT)
+			{
 				self.dir_new = self.direction;
+			}
 
 		switch (self.dir_new)
 		{
@@ -76,9 +79,14 @@ void snake_move(Snake& self)
 			self.body[0].x -= self.tile_size;
 			break;
 		}
-
 		self.direction = self.dir_new;
 	}
+}
+
+void snake_increase(Snake& self)
+{
+	self.body[self.length] = self.body[self.length - 1];
+	self.length++;
 }
 
 void snake_draw(Snake self)
@@ -86,7 +94,7 @@ void snake_draw(Snake self)
 	double diff = 155.0 / self.length;
 	for (double i = 0; i < self.length; i++)
 	{
-		SDL_SetRenderDrawColor(ren, i * diff, int(100 + i * diff), 0, 255);
+		SDL_SetRenderDrawColor(ren, i * diff, 100.0 + i * diff, 0, 255);
 		SDL_RenderFillRect(ren, &self.body[(int)i]);
 	}
 }
@@ -120,8 +128,8 @@ int main(int argc, char** args)
 	srand(time(0));
 	SDL_Rect apple = apple_spawn(pg_size, tile_size, snake);
 
+	bool not_paused = true;
 	SDL_Event ev;
-	const Uint8* kbstate = SDL_GetKeyboardState(NULL);
 	while (true)
 	{
 		while (SDL_PollEvent(&ev))
@@ -131,20 +139,53 @@ int main(int argc, char** args)
 			case SDL_QUIT:
 				quit();
 			case SDL_KEYDOWN:
-				if (ev.key.keysym.scancode >= SDL_SCANCODE_RIGHT and ev.key.keysym.scancode <= SDL_SCANCODE_UP)
-					snake.dir_new = ev.key.keysym.scancode;
+				if (snake.alive)
+				{
+					if (ev.key.keysym.scancode >= SDL_SCANCODE_RIGHT and ev.key.keysym.scancode <= SDL_SCANCODE_UP)
+						snake.dir_new = ev.key.keysym.scancode;
+					else
+						switch (ev.key.keysym.scancode)
+						{
+						case SDL_SCANCODE_ESCAPE:
+							not_paused = !not_paused;
+							break;
+						case SDL_SCANCODE_R:
+							snake_init(snake, pg_size, tile_size);
+							apple = apple_spawn(pg_size, tile_size, snake);
+							not_paused = true;
+						}
+				}
 				else
-					switch (ev.key.keysym.scancode)
-					{
-					case SDL_SCANCODE_R:
-						snake_init(snake, pg_size, tile_size);
-						apple = apple_spawn(pg_size, tile_size, snake);
-						break;
-					case SDL_SCANCODE_ESCAPE:
-						snake.live = !snake.live;
-						break;
-					}
-				break;
+				{
+					snake_init(snake, pg_size, tile_size);
+					apple = apple_spawn(pg_size, tile_size, snake);
+					not_paused = true;
+				}
+			}
+		}
+
+		if (snake.alive and not_paused)
+		{
+			snake_move(snake);
+
+			if (snake.body[0].x < 0 or snake.body[0].x >= win_w or snake.body[0].y < 0 or snake.body[0].y >= win_h or
+				snake.length == pg_size[0] * pg_size[1])
+			{
+				snake.alive = false;
+				SDL_Delay(500);
+				while (SDL_PollEvent(&ev));
+			}
+			else
+			{
+				if (colliderect(apple, snake.body[0]))
+				{
+					apple = apple_spawn(pg_size, tile_size, snake);
+					snake_increase(snake);
+				}
+
+				int collides = collidelist(snake.body[0], snake.body, 3, snake.length);
+				if (collides != -1)
+					snake.length = collides;
 			}
 		}
 
@@ -152,27 +193,6 @@ int main(int argc, char** args)
 		apple_draw(apple);
 		snake_draw(snake);
 		SDL_RenderPresent(ren);
-		
-
-		if (snake.live) 
-		{
-			if (colliderect(apple, snake.body[0]))
-			{
-				apple = apple_spawn(pg_size, tile_size, snake);
-				snake.length++;
-			}
-
-			snake_move(snake);
-
-			if (snake.body[0].x < 0 or snake.body[0].x >= win_w or snake.body[0].y < 0 or snake.body[0].y >= win_h or
-				snake.length == pg_size[0] * pg_size[1])
-				snake.live = false;
-
-			int collides = collidelist(snake.body[0], snake.body, 3, snake.length);
-			if (collides != -1)
-				snake.length = collides;
-
-		}
 		SDL_Delay(100);
 	}
 }
