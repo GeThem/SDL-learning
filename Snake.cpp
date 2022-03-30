@@ -28,7 +28,7 @@ int collidelist(SDL_Rect self, SDL_Rect* list, int start, int end)
 	return -1;
 }
 
-void snake_init(Snake& self, int* pg_size, int tile_size = 40, int length = 2)
+void snake_init(Snake& self, const int* pg_size, int tile_size = 40, int length = 2)
 {
 	self.alive = true;
 	self.length = length;
@@ -105,7 +105,7 @@ void apple_draw(SDL_Rect self)
 	SDL_RenderFillRect(ren, &self);
 }
 
-SDL_Rect apple_spawn(int* pg_size, int tile_size, Snake snake)
+SDL_Rect apple_spawn(const int* pg_size, int tile_size, Snake snake)
 {
 	SDL_Rect apple = { rand() % pg_size[0] * tile_size, rand() % pg_size[1] * tile_size, tile_size, tile_size };
 	if (collidelist(apple, snake.body, 0, snake.length - 1) != -1)
