@@ -2,6 +2,7 @@
 #include <SDL_image.h>
 #include <iostream>
 #include "SDL_default.h"
+#include "SDL_circle.h"
 
 int win_w = 800, win_h = 600;
 
